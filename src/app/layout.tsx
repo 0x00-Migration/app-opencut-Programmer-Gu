@@ -28,6 +28,14 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				{/* Dopame migration: the acde runtime has no WebAssembly.instantiateStreaming, and Turbopack loads
+				    opencut-wasm with it (no fallback), so the editor crashes on load. Fall back to instantiate(). */}
+				<script
+					dangerouslySetInnerHTML={{
+						__html:
+							"if(typeof WebAssembly!=='undefined'&&!WebAssembly.instantiateStreaming){WebAssembly.instantiateStreaming=async function(r,i){var b=await (await r).arrayBuffer();return WebAssembly.instantiate(b,i)};}if(typeof WebAssembly!=='undefined'&&!WebAssembly.compileStreaming){WebAssembly.compileStreaming=async function(r){return WebAssembly.compile(await (await r).arrayBuffer())};}",
+					}}
+				/>
 				<BotIdClient protect={protectedRoutes} />
 				{process.env.NODE_ENV === "development" && (
 					<>

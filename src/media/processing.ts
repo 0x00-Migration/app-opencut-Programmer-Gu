@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { getMediaTypeFromFile } from "@/media/media-utils";
+import { getMediaTypeFromFile, mimeTypeOf } from "@/media/media-utils";
 import { formatStorageBytes } from "@/services/storage/quota";
 import { storageService } from "@/services/storage/service";
 import type { MediaAsset } from "@/media/types";
@@ -197,7 +197,7 @@ export async function processMediaAssets({
 const getMediaDuration = ({ file }: { file: File }): Promise<number> => {
 	return new Promise((resolve, reject) => {
 		const element = document.createElement(
-			file.type.startsWith("video/") ? "video" : "audio",
+			mimeTypeOf(file).startsWith("video/") ? "video" : "audio",
 		) as HTMLVideoElement;
 		const objectUrl = URL.createObjectURL(file);
 
