@@ -15,7 +15,8 @@
 | `feat: import the OpenCut web editor as a Dopame app` | 原样导入上游代码，只加 acdev 所需的文件：`acde.config.jsonc`、`@acde/api`、`packageManager`、钉住版本的依赖、`bun.lock`、模板 CI |
 | `fix(build): build upstream HEAD with acdev` | 跳过 `next build` 的类型检查（上游自身有 20 个类型错误）；服务端密钥改为可选 |
 | `fix: open the editor and import files on the acde runtime` | 补 `WebAssembly.instantiateStreaming`；文件 MIME 类型为空时按扩展名推断 |
-| `docs/test: …` | 本文件和 `e2e/` 冒烟测试 |
+| `docs: record the migration and add smoke tests` | 本文件和 `e2e/` 冒烟测试 |
+| `fix(build): drop --bun from NODE_OPTIONS before Turbopack starts` | 绕过 acdev 在装有 Node.js 的机器上构建 Next.js 失败的问题（CI 第一次运行就是因此失败） |
 
 ## 现在能做什么、不能做什么（都实际运行过）
 
@@ -46,11 +47,18 @@ acdev check --platform linux
 acdev build
 ```
 
-**已知问题（acdev 本身，与本应用无关）**：机器上装有 Node.js 时，`acdev build` 会失败，报 `node: --bun is not allowed in NODE_OPTIONS`。GitHub 的 Ubuntu 运行器默认装有 Node.js，所以 CI 也会失败。
+**acdev 的问题（已在应用内绕过）**：机器上装有 Node.js 时（GitHub 的 Ubuntu 运行器默认就有），`acdev build` 会失败，报 `node: --bun is not allowed in NODE_OPTIONS`。
 
 - 原因：acdev 以 `bun --bun <绝对路径>/next build` 运行 Next.js，Turbopack 处理 PostCSS 时会用真正的 node 启动工作进程，并带上 `NODE_OPTIONS=--bun`。
 - 最小复现：在任何 Next.js 16 + Tailwind/PostCSS 项目里，`bun --bun ./node_modules/.bin/next build` 失败，而 `bun --bun node_modules/.bin/next build`（不带 `./`）能编译通过。
-- 本地绕过：构建时把 node 从 `PATH` 里拿掉。
+- 绕过：`next.config.ts` 在 Turbopack 启动工作进程之前加载，于是在这里把 `--bun` 从 `NODE_OPTIONS` 里去掉（提交 `fix(build): drop --bun from NODE_OPTIONS before Turbopack starts`）。根本的修复应该在 acdev 里做。
+
+**CI 结果**：
+
+| 提交 | 运行 | 结果 |
+|---|---|---|
+| `d2d68d9`（迁移的 4 个提交） | [45771870999](https://github.com/0x00-Migration/app-opencut-Programmer-Gu/actions/runs/45771870999) | 失败，停在 `acdev build`，其余步骤都通过 |
+| `ae1887b`（只加了上面的绕过） | [45772212995](https://github.com/0x00-Migration/app-opencut-Programmer-Gu/actions/runs/45772212995) | 全部通过，产出 55.6 MB 的包 |
 
 ## 冒烟测试
 
