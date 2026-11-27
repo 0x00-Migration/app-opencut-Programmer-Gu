@@ -125,6 +125,14 @@ class TranscriptionService {
 				const response = event.data;
 
 				switch (response.type) {
+					case "ready":
+						// Dopame migration: send "init" only once the worker's handler exists (see worker.ts).
+						this.worker?.postMessage({
+							type: "init",
+							modelId: model.huggingFaceId,
+						} satisfies WorkerMessage);
+						break;
+
 					case "init-progress":
 						onProgress?.({
 							status: "loading-model",
@@ -151,11 +159,13 @@ class TranscriptionService {
 			};
 
 			this.worker.addEventListener("message", handleMessage);
-
-			this.worker.postMessage({
-				type: "init",
-				modelId: model.huggingFaceId,
-			} satisfies WorkerMessage);
+			// A worker that fails to load would otherwise leave the caller waiting forever.
+			this.worker.addEventListener("error", (event) => {
+				this.worker?.removeEventListener("message", handleMessage);
+				this.isInitializing = false;
+				this.terminate();
+				reject(new Error(event.message || "The transcription worker failed to load"));
+			});
 		});
 	}
 

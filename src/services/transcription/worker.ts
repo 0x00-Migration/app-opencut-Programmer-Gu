@@ -1,8 +1,17 @@
 import {
+	env,
 	pipeline,
 	type AutomaticSpeechRecognitionPipeline,
 	type AutomaticSpeechRecognitionOutput,
 } from "@huggingface/transformers";
+import { isAcdeRuntime } from "@/utils/acde-runtime";
+
+// Dopame migration: load onnxruntime-web's wasm glue from this app (public/ort/, copied by
+// scripts/copy-ort-assets.mjs) instead of cdn.jsdelivr.net; the acde runtime does not import ES modules from other
+// hosts. The worker runs from a blob: URL, so the path is made absolute with the app's origin. See MIGRATION.md.
+if (isAcdeRuntime() && env.backends.onnx.wasm) {
+	env.backends.onnx.wasm.wasmPaths = `${self.location.origin}/ort/`;
+}
 import type { TranscriptionSegment } from "@/transcription/types";
 import {
 	DEFAULT_CHUNK_LENGTH_SECONDS,
@@ -15,6 +24,7 @@ export type WorkerMessage =
 	| { type: "cancel" };
 
 export type WorkerResponse =
+	| { type: "ready" }
 	| { type: "init-progress"; progress: number }
 	| { type: "init-complete" }
 	| { type: "init-error"; error: string }
@@ -51,6 +61,11 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 			break;
 	}
 };
+
+// Dopame migration: tell the page the message handler is in place. Loading transformers.js in this worker takes
+// ~10 s on a cold start in the acde runtime, and a message posted before the handler exists is lost there, so the
+// service waits for this before it sends "init". See MIGRATION.md.
+self.postMessage({ type: "ready" } satisfies WorkerResponse);
 
 async function handleInit({ modelId }: { modelId: string }) {
 	lastReportedProgress = -1;
