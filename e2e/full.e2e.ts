@@ -1,7 +1,7 @@
 // End to end on the acde runtime: import an H.264/AAC MP4, add it to the timeline, check that the preview shows the
 // video, play it, export it, and look for the saved file. Results and screenshots go to OUT (.acde/smoke/full-*).
 import { test, expect } from 'acdev/test'
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.acde', 'smoke')
@@ -90,6 +90,7 @@ test('opencut full flow', async ({ app, acde, home }) => {
   if (b64) writeFileSync(join(OUT, 'full-export-captured.mp4'), Buffer.from(b64, 'base64'))
   log.savedFiles = files(home).filter((p) => /\.(mp4|webm)$/.test(p) && !p.includes('fixtures')).map((p) => ({ path: p.replace(home, '~'), bytes: statSync(p).size }))
 
+  if (existsSync(join(home, 'opencut-export.mp4'))) copyFileSync(join(home, 'opencut-export.mp4'), join(OUT, 'full-export-saved.mp4'))
   log.console = (await app!.console({ limit: 400 })).entries
   writeFileSync(join(OUT, 'full-result.json'), JSON.stringify(log, null, 2))
   expect(true).toBe(true)
