@@ -111,6 +111,19 @@ await wait(4000)
 log.errorsAfterEffect = consoleErrors.slice()
 await shot('chrome-2b-effect.png')
 
+// Same as e2e/extras.e2e.ts: the Stickers tab's content.
+await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '').trim() === 'Stickers'); b?.click() })()`)
+await wait(5000)
+// Radix tabs switch on pointer down: send a real mouse click on "Flags".
+const flags = await js(`(() => { const t = [...document.querySelectorAll('[role=tab]')].find(e => e.textContent?.trim() === 'Flags'); const r = t?.getBoundingClientRect(); return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null })()`)
+if (flags) {
+  for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x: flags.x, y: flags.y, button: 'left', clickCount: 1 })
+  await wait(5000)
+}
+log.stickersPanel = await js(`(() => { const lines = document.body.innerText.split('\\n').map(s => s.trim()).filter(Boolean); const i = lines.indexOf('Shapes'); return lines.slice(i, i + 8).join(' | ') })()`)
+log.stickerImages = await js(`document.querySelectorAll('img[src*="flag"], img[src*="sticker"], img[src*="shape"], img[src$=".svg"]').length`)
+await shot('chrome-2c-stickers.png')
+
 await js('history.back()')
 await wait(8000)
 log.projectsPath = await js('location.pathname')
