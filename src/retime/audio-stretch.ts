@@ -1,4 +1,9 @@
-import { PitchShifter } from "soundtouchjs";
+import {
+	PitchShifter,
+	SimpleFilter,
+	SoundTouch,
+	WebAudioBufferSource,
+} from "soundtouchjs";
 import { clampRetimeRate, shouldMaintainPitch } from "@/retime/rate";
 import type { RetimeConfig } from "@/timeline";
 import { getSourceTimeAtClipTime } from "./resolve";
@@ -133,11 +138,68 @@ async function buildPitchPreservedBuffer({
 		outputSamples,
 		targetSampleRate,
 	);
-	const shifter = new PitchShifter(stretchCtx, resampledBuffer, 4096);
+	let shifter: PitchShifter;
+	try {
+		shifter = new PitchShifter(stretchCtx, resampledBuffer, 4096);
+	} catch (error) {
+		// Dopame migration: PitchShifter is built on ScriptProcessorNode, which the acde runtime does not have
+		// (createScriptProcessor throws NotSupportedError). Stretch with soundtouch's offline API instead.
+		if (!(error instanceof DOMException && error.name === "NotSupportedError")) throw error;
+		return stretchWithoutScriptProcessor({
+			context: stretchCtx,
+			input: resampledBuffer,
+			rate,
+			outputSamples,
+			numChannels,
+		});
+	}
 	shifter.tempo = rate;
 	shifter.pitch = 1;
 	shifter.connect(stretchCtx.destination);
 	return stretchCtx.startRendering();
+}
+
+// Dopame migration: the same SoundTouch time stretch, run directly on the samples. soundtouch holds back a few
+// hundred milliseconds, so the input gets 0.5 s of silence to flush it (measured: with it, the first
+// length / rate output frames are all signal at rates 0.5, 1.5 and 2), and the output is cut to the clip length.
+function stretchWithoutScriptProcessor({
+	context,
+	input,
+	rate,
+	outputSamples,
+	numChannels,
+}: {
+	context: BaseAudioContext;
+	input: AudioBuffer;
+	rate: number;
+	outputSamples: number;
+	numChannels: number;
+}): AudioBuffer {
+	const padding = Math.ceil(input.sampleRate * 0.5);
+	const padded = context.createBuffer(2, input.length + padding, input.sampleRate);
+	for (let ch = 0; ch < 2; ch++) {
+		padded.copyToChannel(input.getChannelData(Math.min(ch, input.numberOfChannels - 1)), ch);
+	}
+	const soundTouch = new SoundTouch();
+	soundTouch.tempo = rate;
+	soundTouch.pitch = 1;
+	const filter = new SimpleFilter(new WebAudioBufferSource(padded), soundTouch);
+
+	const output = context.createBuffer(numChannels, outputSamples, input.sampleRate);
+	const channels = Array.from({ length: numChannels }, (_, ch) => output.getChannelData(ch));
+	const chunk = new Float32Array(4096 * 2);
+	let written = 0;
+	while (written < outputSamples) {
+		const frames = filter.extract(chunk, 4096);
+		if (frames <= 0) break;
+		const take = Math.min(frames, outputSamples - written);
+		for (let i = 0; i < take; i++) {
+			channels[0][written + i] = chunk[i * 2];
+			if (numChannels > 1) channels[1][written + i] = chunk[i * 2 + 1];
+		}
+		written += take;
+	}
+	return output;
 }
 
 export async function renderRetimedBuffer({
