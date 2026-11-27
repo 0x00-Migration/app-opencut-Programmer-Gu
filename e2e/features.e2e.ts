@@ -66,13 +66,23 @@ test('opencut features', async ({ app, acde }) => {
   await app!.screenshot({ path: join(OUT, 'features-3-text.png') })
   await errors('text')
 
-  // Fullscreen button of the preview (docs D14).
-  log.fullscreen = await app!.evaluate<unknown>(`(async () => {
-    const buttons = [...document.querySelectorAll('button')].filter(b => b.querySelector('svg'));
-    const b = buttons.find(b => /fullscreen|full screen/i.test((b.getAttribute('aria-label') || '') + (b.getAttribute('title') || '')));
-    if (!b) return 'no fullscreen button found';
-    b.click(); await new Promise(r => setTimeout(r, 1500)); return { clicked: true, fullscreenElement: !!document.fullscreenElement }
+  // Fullscreen button of the preview (docs D14): the icon button after "Fit" in the preview toolbar.
+  const previewBox = `(() => { const c = [...document.querySelectorAll('canvas')].find((x) => x.width >= 1280); const r = c?.getBoundingClientRect(); return r ? { w: Math.round(r.width), h: Math.round(r.height) } : null })()`
+  log.previewBeforeFullscreen = await app!.evaluate<unknown>(previewBox)
+  log.fullscreenClick = await app!.evaluate<string>(`(() => {
+    const fit = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Fit')
+    const bar = fit?.parentElement?.parentElement
+    const buttons = bar ? [...bar.querySelectorAll('button')] : []
+    const b = buttons[buttons.length - 1]
+    if (!b || b === fit) return 'no fullscreen button found'
+    b.click(); return 'clicked'
   })()`)
+  await wait(1500)
+  log.previewInFullscreen = await app!.evaluate<unknown>(previewBox)
+  await app!.screenshot({ path: join(OUT, 'features-4-fullscreen.png') })
+  await app!.keyboard.press('Escape')
+  await wait(1000)
+  log.previewAfterEscape = await app!.evaluate<unknown>(previewBox)
   await errors('fullscreen')
   writeFileSync(join(OUT, 'features-result.json'), JSON.stringify(log, null, 2))
   expect(true).toBe(true)
