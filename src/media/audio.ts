@@ -68,7 +68,13 @@ export async function decodeAudioToFloat32({
 }): Promise<DecodedAudio> {
 	const audioContext = createAudioContext({ sampleRate });
 	const arrayBuffer = await audioBlob.arrayBuffer();
-	const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+	let audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+	// Dopame migration: the acde runtime's AudioContext ignores the sampleRate option (it stays at 48 kHz), so
+	// decodeAudioData returned 48 kHz audio where 16 kHz was asked for, and Whisper heard it three times too slow
+	// ("(Gibberish)"). OfflineAudioContext honours the rate there; decode again with it when the rate is off.
+	if (sampleRate && audioBuffer.sampleRate !== sampleRate) {
+		audioBuffer = await new OfflineAudioContext(1, 1, sampleRate).decodeAudioData(arrayBuffer);
+	}
 
 	// mix down to mono
 	const numChannels = audioBuffer.numberOfChannels;
