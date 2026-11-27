@@ -1,13 +1,13 @@
 // Chrome control for e2e/full.e2e.ts: serve this repo's production build (.next/standalone, made by `acdev build`)
 // on localhost and drive the same flow in headless Google Chrome over the DevTools protocol: new project, import
 // the MP4, add it to the timeline, play, go back to the project list and analyse the project thumbnail.
-// Run: bun e2e/chrome-baseline.ts   → .acde/smoke/chrome-result.json and chrome-*.png
+// Run: bun e2e/chrome-baseline.ts   → .smoke/chrome-result.json and chrome-*.png
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const root = join(import.meta.dir, '..')
-const OUT = join(root, '.acde', 'smoke')
+const OUT = join(root, '.smoke')
 mkdirSync(OUT, { recursive: true })
 const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const wait = (ms: number) => Bun.sleep(ms)

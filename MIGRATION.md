@@ -67,4 +67,4 @@ acdev test e2e/opencut.e2e.ts   # 首页 → 项目页 → 新建项目 → 编�
 acdev test e2e/import.e2e.ts    # 用 Import 按钮导入 PNG 和 MP4，记录提示
 ```
 
-截图和结果写到 `.acde/smoke/`。
+截图和结果写到 `.smoke/`。

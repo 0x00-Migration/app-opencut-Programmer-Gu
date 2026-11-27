@@ -1,10 +1,10 @@
 // End to end on the acde runtime: import an H.264/AAC MP4, add it to the timeline, check that the preview shows the
-// video, play it, export it, and look for the saved file. Results and screenshots go to OUT (.acde/smoke/full-*).
+// video, play it, export it, and look for the saved file. Results and screenshots go to OUT (.smoke/full-*).
 import { test, expect } from 'acdev/test'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.acde', 'smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
 const MEDIA = process.env.SMOKE_MEDIA ?? join(import.meta.dir, 'fixtures')
 const log: Record<string, unknown> = {}
 mkdirSync(OUT, { recursive: true })

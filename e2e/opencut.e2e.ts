@@ -1,10 +1,10 @@
 // Smoke test of the migrated OpenCut on the acdev runtime: home page, projects page, create a project, open the editor.
-// Screenshots and console go to OUT (docs/research/opencut/migration/smoke-*).
+// Screenshots and console go to OUT (.smoke/smoke-*).
 import { test, expect } from 'acdev/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.acde', 'smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
 const log: Record<string, unknown> = {}
 mkdirSync(OUT, { recursive: true })
 

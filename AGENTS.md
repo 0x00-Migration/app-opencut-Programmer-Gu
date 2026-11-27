@@ -26,4 +26,4 @@
   - `scripts/acdev.sh build`：构建包。
 - 用 CI 同版本复现：工作区 `build/acdev-0.1.3/bin/acdev`（`check --platform linux`、`build`）。
 - 结论以实测为准，并在 Chrome 里用同一段代码对照。探针在工作区的 `experiments/opencut-probes/`，难点清单在 `docs/research/opencut/01-困难与难以实现的部分.md`。
-- `e2e/` 的截图和结果写到 `.acde/smoke/`（不入库）。
+- `e2e/` 的截图和结果写到 `.smoke/`（不入库；`acdev build` 会重建 `.acde/`，所以不放在那里）。
