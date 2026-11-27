@@ -35,7 +35,16 @@ const ws = new WebSocket(page!.webSocketDebuggerUrl)
 await new Promise((r) => (ws.onopen = r))
 let id = 0
 const pending = new Map<number, (v: any) => void>()
-ws.onmessage = (e) => { const m = JSON.parse(String(e.data)); if (m.id) { pending.get(m.id)?.(m.result ?? m.error); pending.delete(m.id) } }
+const consoleErrors: string[] = []
+ws.onmessage = (e) => {
+  const m = JSON.parse(String(e.data))
+  if (m.id) { pending.get(m.id)?.(m.result ?? m.error); pending.delete(m.id); return }
+  if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') consoleErrors.push(m.params.args.map((a: any) => a.value ?? a.description ?? '').join(' ').slice(0, 300))
+  if (m.method === 'Runtime.exceptionThrown') {
+    const d = m.params.exceptionDetails
+    consoleErrors.push(String(d?.exception?.description ?? d?.exception?.value ?? '') .slice(0, 300) || String(d?.text))
+  }
+}
 const send = (method: string, params: object = {}) => new Promise<any>((r) => { pending.set(++id, r); ws.send(JSON.stringify({ id, method, params })) })
 const js = async (expression: string) => (await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result?.value
 const shot = async (name: string) => writeFileSync(join(OUT, name), Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
@@ -66,6 +75,15 @@ await shot('chrome-1-imported.png')
 log.added = await js(`(() => { const l = [...document.querySelectorAll('[title]')].find(e => e.getAttribute('title') === 'h264_aac.mp4'); const b = l?.closest('.group')?.querySelector('button'); if (!b) return 'no + button'; b.click(); return 'clicked' })()`)
 await wait(4000)
 await shot('chrome-2-on-timeline.png')
+
+// Same as e2e/features.e2e.ts: open the Effects tab and apply the first effect with its + button.
+log.errorsBeforeEffect = consoleErrors.slice()
+log.effectsTab = await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '').trim() === 'Effects' || b.textContent?.trim() === 'Effects'); b?.click(); return b ? 'clicked' : 'none' })()`)
+await wait(4000)
+log.effectAdded = await js(`(() => { const b = document.querySelector('.group button'); if (!b) return 'none'; b.click(); return 'clicked ' + (b.closest('.group')?.textContent?.trim().slice(0, 30) ?? '') })()`)
+await wait(4000)
+log.errorsAfterEffect = consoleErrors.slice()
+await shot('chrome-2b-effect.png')
 
 await js('history.back()')
 await wait(8000)

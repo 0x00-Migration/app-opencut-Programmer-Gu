@@ -127,6 +127,11 @@ async function collectNode({
 		items.push({
 			type: "sceneEffect",
 			effectPassGroups: [node.resolved.passes],
+			// Upstream bug fix (not Dopame-specific): the compositor's FrameItemDescriptor::SceneEffect is a struct
+			// variant, and serde's enum-level rename_all renames only the tags, so it reads `effect_pass_groups`.
+			// Without it every frame with an effect layer failed with "missing field `effect_pass_groups`"
+			// (Chrome 158 too) and the preview stopped updating.
+			effect_pass_groups: [node.resolved.passes],
 		});
 		return;
 	}

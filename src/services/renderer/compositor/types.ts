@@ -23,6 +23,8 @@ export type FrameItemDescriptor =
 	| {
 			type: "sceneEffect";
 			effectPassGroups: EffectPass[][];
+			/** The name opencut-wasm's SceneEffect variant actually reads (see frame-descriptor.ts). */
+			effect_pass_groups: EffectPass[][];
 	  };
 
 export type QuadTransformDescriptor = {
