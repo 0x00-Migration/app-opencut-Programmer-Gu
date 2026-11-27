@@ -90,6 +90,24 @@ test('opencut full flow', async ({ app, acde, home }) => {
   if (b64) writeFileSync(join(OUT, 'full-export-captured.mp4'), Buffer.from(b64, 'base64'))
   log.savedFiles = files(home).filter((p) => /\.(mp4|webm)$/.test(p) && !p.includes('fixtures')).map((p) => ({ path: p.replace(home, '~'), bytes: statSync(p).size }))
 
+  // 5. Back to the project list: the project card shows a thumbnail rendered by renderToCanvas (docs D4).
+  // history.back(), not a reload: acdev test keeps IndexedDB in memory and drops it on reload (localStorage
+  // survives); with on-disk storage (acdev dev) both survive a reload.
+  await app!.evaluate<void>('history.back()')
+  await wait(8000)
+  log.projectsPath = await app!.evaluate<string>('location.pathname')
+  log.thumbnail = await app!.evaluate<unknown>(`(async () => {
+    const img = [...document.images].find((i) => i.src.startsWith('data:image'))
+    if (!img) return { found: false, images: document.images.length }
+    await img.decode().catch(() => {})
+    const c = document.createElement('canvas'); c.width = 32; c.height = 18
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 32, 18)
+    const d = x.getImageData(0, 0, 32, 18).data; const colours = new Set(); let alpha = 0
+    for (let i = 0; i < d.length; i += 4) { colours.add((d[i] >> 4) + ',' + (d[i + 1] >> 4) + ',' + (d[i + 2] >> 4)); alpha += d[i + 3] }
+    return { found: true, bytes: img.src.length, size: img.naturalWidth + 'x' + img.naturalHeight, distinctColours: colours.size, meanAlpha: Math.round(alpha / (d.length / 4)), topLeft: Array.from(x.getImageData(1, 1, 1, 1).data) }
+  })()`)
+  await app!.screenshot({ path: join(OUT, 'full-6-projects.png') })
+
   if (existsSync(join(home, 'opencut-export.mp4'))) copyFileSync(join(home, 'opencut-export.mp4'), join(OUT, 'full-export-saved.mp4'))
   log.console = (await app!.console({ limit: 400 })).entries
   writeFileSync(join(OUT, 'full-result.json'), JSON.stringify(log, null, 2))
