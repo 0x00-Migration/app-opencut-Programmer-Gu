@@ -1,12 +1,12 @@
 // Drag and drop from the system on the acde runtime (docs D10): files over 64 MiB are not in dataTransfer.files
 // there. Drops SMOKE_BIG (a video over 64 MiB; local only, not in the repo) onto the Media panel's drop zone and
-// onto the timeline, and records toasts, assets and tracks. Results go to .smoke/drop-*.
+// onto the timeline, and records toasts, assets and tracks. Results go to build/smoke/drop-*.
 // Run: SMOKE_BIG=/path/to/big.mp4 scripts/acdev.sh test e2e/drop.e2e.ts
 import { test, expect } from 'acdev/test'
 import { mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', 'build', 'smoke')
 const BIG = process.env.SMOKE_BIG ?? ''
 mkdirSync(OUT, { recursive: true })
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

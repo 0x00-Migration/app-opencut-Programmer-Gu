@@ -1,11 +1,11 @@
 // Editing features beyond cutting, on the acde runtime: the Effects tab (effect tiles render previews through
 // applyEffectPasses), applying an effect to a clip, adding text, and the preview's fullscreen button.
-// Records console errors, preview samples and screenshots per step into OUT (.smoke/features-*).
+// Records console errors, preview samples and screenshots per step into OUT (build/smoke/features-*).
 import { test, expect } from 'acdev/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', 'build', 'smoke')
 const MEDIA = process.env.SMOKE_MEDIA ?? join(import.meta.dir, 'fixtures')
 mkdirSync(OUT, { recursive: true })
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

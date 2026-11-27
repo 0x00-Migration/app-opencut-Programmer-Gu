@@ -1,11 +1,11 @@
 // Speed change with pitch preserved on the acde runtime (docs D11: no ScriptProcessorNode). Sets the clip to 2x
-// with "Change pitch" off, exports, and keeps the file as .smoke/speed-export.mp4: it should last ~1.5 s and keep
-// the fixture's 440 Hz tone (880 Hz would mean the pitch changed). Results go to .smoke/speed-*.
+// with "Change pitch" off, exports, and keeps the file as build/smoke/speed-export.mp4: it should last ~1.5 s and keep
+// the fixture's 440 Hz tone (880 Hz would mean the pitch changed). Results go to build/smoke/speed-*.
 import { test, expect } from 'acdev/test'
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', 'build', 'smoke')
 const MEDIA = process.env.SMOKE_MEDIA ?? join(import.meta.dir, 'fixtures')
 mkdirSync(OUT, { recursive: true })
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

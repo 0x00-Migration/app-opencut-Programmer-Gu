@@ -3,7 +3,7 @@ import { test, expect } from 'acdev/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', '.smoke')
+const OUT = process.env.SMOKE_OUT ?? join(import.meta.dir, '..', 'build', 'smoke')
 const MEDIA = process.env.SMOKE_MEDIA ?? join(import.meta.dir, 'fixtures')
 const TAG = process.env.SMOKE_TAG ?? 'import'
 const log: Record<string, unknown> = {}
