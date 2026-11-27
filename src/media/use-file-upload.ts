@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useEditor } from "@/editor/use-editor";
+import { getDroppedFiles } from "@/media/dropped-files";
 
 interface UseFileUploadOptions {
 	accept?: string;
@@ -75,14 +76,16 @@ export function useFileUpload({
 		dragCounterRef.current = 0;
 
 		if (onFilesSelected && containsFiles(e.dataTransfer)) {
-			const files = Array.from(e.dataTransfer.files);
-			const shouldUseMultiple = multiple ?? false;
+			// Dopame migration: getDroppedFiles also finds files the runtime leaves out of dataTransfer.files.
+			void getDroppedFiles(e.dataTransfer).then((files) => {
+				const shouldUseMultiple = multiple ?? false;
 
-			if (shouldUseMultiple) {
-				onFilesSelected(files);
-			} else if (files.length > 0) {
-				onFilesSelected([files[0]]);
-			}
+				if (shouldUseMultiple) {
+					onFilesSelected(files);
+				} else if (files.length > 0) {
+					onFilesSelected([files[0]]);
+				}
+			});
 		}
 	}
 

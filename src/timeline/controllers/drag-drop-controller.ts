@@ -1,5 +1,6 @@
 import type { DragEvent } from "react";
 import { processMediaAssets } from "@/media/processing";
+import { getDroppedFiles, hasDroppedFiles } from "@/media/dropped-files";
 import { showMediaUploadToast } from "@/media/upload-toast";
 import {
 	DEFAULT_NEW_ELEMENT_DURATION,
@@ -247,8 +248,10 @@ export class DragDropController {
 		this.enterCount = 0;
 
 		const dragData = this.config.dragSource.getActive();
-		const hasFiles = event.dataTransfer.files?.length > 0;
+		// Dopame migration: count file items too; the acde runtime leaves files over 64 MiB out of .files.
+		const hasFiles = hasDroppedFiles(event.dataTransfer);
 		if (!dragData && !hasFiles) return;
+		const droppedFiles = dragData ? null : getDroppedFiles(event.dataTransfer!);
 
 		const currentTarget = this.dropTarget;
 		this.setIdle();
@@ -262,13 +265,17 @@ export class DragDropController {
 
 			const coords = this.getMouseTimelineCoords({ event });
 			if (!coords) return;
-			this.executeFileDrop({
-				files: Array.from(event.dataTransfer.files),
-				mouseX: coords.mouseX,
-				mouseY: coords.mouseY,
-			}).catch((error) => {
-				console.error("Failed to process file drop:", error);
-			});
+			(droppedFiles ?? Promise.resolve([]))
+				.then((files) =>
+					this.executeFileDrop({
+						files,
+						mouseX: coords.mouseX,
+						mouseY: coords.mouseY,
+					}),
+				)
+				.catch((error) => {
+					console.error("Failed to process file drop:", error);
+				});
 		} catch (error) {
 			console.error("Failed to process drop:", error);
 		}
