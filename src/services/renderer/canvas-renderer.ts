@@ -9,6 +9,7 @@ import {
 	measureSpanSync,
 	onRenderPerfFrameComplete,
 } from "@/diagnostics/render-perf";
+import { isAcdeRuntime } from "@/utils/acde-runtime";
 
 export type CanvasRendererParams = {
 	width: number;
@@ -83,6 +84,11 @@ export class CanvasRenderer {
 		targetCanvas: HTMLCanvasElement;
 	}) {
 		await this.render({ node, time });
+
+		// Dopame migration: the acde runtime makes a WebGPU canvas readable only once its frame has been
+		// presented, the opposite of browsers (readable in the same task, cleared after presenting). Read in the
+		// next task there, or project thumbnails and copied frames come out transparent. See MIGRATION.md.
+		if (isAcdeRuntime()) await new Promise((resolve) => setTimeout(resolve, 0));
 
 		const ctx = targetCanvas.getContext("2d");
 		if (!ctx) {

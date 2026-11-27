@@ -2,6 +2,8 @@
 // downloads were lost silently. There, save through the File System Access save picker instead, which the
 // runtime supports; browsers keep the anchor download they always had. See MIGRATION.md.
 
+import { isAcdeRuntime } from "@/utils/acde-runtime";
+
 type SavePickerWindow = Window & {
 	showSaveFilePicker?: (options?: {
 		suggestedName?: string;
@@ -13,10 +15,6 @@ type SavePickerWindow = Window & {
 		}>;
 	}>;
 };
-
-export function isAcdeRuntime(): boolean {
-	return typeof navigator !== "undefined" && / acde\//.test(navigator.userAgent);
-}
 
 function anchorDownload({ blob, filename }: { blob: Blob; filename: string }) {
 	const url = URL.createObjectURL(blob);
