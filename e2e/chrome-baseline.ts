@@ -67,14 +67,40 @@ log.editorPath = await js('location.pathname')
 
 const doc = await send('DOM.getDocument', { depth: -1, pierce: true })
 const { nodeId } = await send('DOM.querySelector', { nodeId: doc.root.nodeId, selector: 'input[type=file]' })
-await send('DOM.setFileInputFiles', { nodeId, files: [join(import.meta.dir, 'fixtures', 'h264_aac.mp4')] })
+// SMOKE_SPEECH=<clip with speech>: run the captions flow of e2e/captions.e2e.ts instead of the effect/thumbnail one.
+const speech = process.env.SMOKE_SPEECH
+const media = speech ?? join(import.meta.dir, 'fixtures', 'h264_aac.mp4')
+const mediaName = media.split('/').pop()!
+await send('DOM.setFileInputFiles', { nodeId, files: [media] })
 await wait(7000)
 log.assets = await js(`[...document.querySelectorAll('[title]')].map(e => e.getAttribute('title')).filter(t => /\\.mp4$/.test(t))`)
 await shot('chrome-1-imported.png')
 
-log.added = await js(`(() => { const l = [...document.querySelectorAll('[title]')].find(e => e.getAttribute('title') === 'h264_aac.mp4'); const b = l?.closest('.group')?.querySelector('button'); if (!b) return 'no + button'; b.click(); return 'clicked' })()`)
+log.added = await js(`(() => { const l = [...document.querySelectorAll('[title]')].find(e => e.getAttribute('title') === ${JSON.stringify(mediaName)}); const b = l?.closest('.group')?.querySelector('button'); if (!b) return 'no + button'; b.click(); return 'clicked' })()`)
 await wait(4000)
 await shot('chrome-2-on-timeline.png')
+
+if (speech) {
+  log.captionsTab = await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '').trim() === 'Captions'); b?.click(); return b ? 'clicked' : 'none' })()`)
+  await wait(2000)
+  log.generate = await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Generate transcript'); b?.click(); return b ? 'clicked' : 'none' })()`)
+  const steps: string[] = []
+  const t0 = Date.now()
+  for (let i = 0; i < Number(process.env.SMOKE_CAPTIONS_SECONDS ?? 300) / 2; i++) {
+    await wait(2000)
+    const state = await js(`(() => { const b = [...document.querySelectorAll('button')].find(b => /Generate transcript|Loading model|Extracting|Preparing|Transcrib|Generating/.test(b.textContent ?? '')); return b?.textContent?.trim() ?? 'no button' })()`)
+    if (steps[steps.length - 1]?.split(' @')[0] !== state) steps.push(`${state} @${Math.round((Date.now() - t0) / 1000)}s`)
+    if (i > 2 && state === 'Generate transcript') break
+  }
+  log.captionSteps = steps
+  log.captionTexts = await js(`[...document.querySelectorAll('*')].filter(e => e.children.length === 0 && /[a-z]{3,}/i.test(e.textContent ?? '') && (e.textContent ?? '').length < 80 && e.closest('[class*=timeline], [data-element-id]')).map(e => e.textContent).slice(0, 20)`)
+  log.captionErrors = consoleErrors.slice()
+  await shot('chrome-captions.png')
+  writeFileSync(join(OUT, 'chrome-captions-result.json'), JSON.stringify(log, null, 2))
+  console.log(JSON.stringify(log))
+  ws.close(); proc.kill(); server.kill()
+  process.exit(0)
+}
 
 // Same as e2e/features.e2e.ts: open the Effects tab and apply the first effect with its + button.
 log.errorsBeforeEffect = consoleErrors.slice()
