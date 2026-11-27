@@ -46,7 +46,7 @@
 | 拖入超过 64 MiB 的文件不在 `dataTransfer.files` 里 | 从 `items` 的文件句柄取 | `src/media/dropped-files.ts` |
 | `requestFullscreen` 不支持 | 用 `acde:window` 的 `requestState('fullscreen')`，并让预览铺满窗口 | `src/hooks/use-fullscreen.ts` |
 | 没有 `ScriptProcessorNode`，变速保音高失败 | 用 soundtouch 的离线 API 直接处理采样 | `src/retime/audio-stretch.ts` |
-| Worker 冷启动约 10 s，在它装好消息处理之前发出的消息会丢失，字幕一直停在 “Preparing audio…” | Worker 就绪后发 `ready`，收到后再发 `init`；Worker 出错时报错 | `src/services/transcription/` |
+| 打包器在 Worker 的启动脚本返回之后才求值它的模块，而运行时求值 transformers.js 要约 10 s（Chrome 里约 2 s 内就开始报告模型下载进度）；页面创建 Worker 后立即发的 `init` 在处理函数装好之前就到了，没人处理，字幕一直停在 “Preparing audio…”。简单情形下运行时和 Chrome 一样会排队早到的消息、上报 Worker 错误（探针 P22、P23） | Worker 就绪后发 `ready`，收到后再发 `init`；Worker 出错时报错 | `src/services/transcription/` |
 | 不允许从外部主机 import ES 模块，onnxruntime 的 wasm 胶水从 jsdelivr 加载失败 | postinstall 把这两个文件复制到 `public/ort/`，Worker 从本应用加载 | `scripts/copy-ort-assets.mjs`、`worker.ts` |
 | `AudioContext` 忽略 `sampleRate`，字幕音频是 48 kHz 却当 16 kHz 用（“(Gibberish)”） | 采样率不对时改用 `OfflineAudioContext` 重新解码 | `src/media/audio.ts` |
 | **上游 bug**：特效图层的帧描述字段名与合成器不一致，加特效后每一帧都报错（Chrome 也一样） | 同时发送合成器读取的 `effect_pass_groups` | `src/services/renderer/compositor/` |

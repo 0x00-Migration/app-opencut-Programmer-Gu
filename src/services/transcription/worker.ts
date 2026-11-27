@@ -62,9 +62,11 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 	}
 };
 
-// Dopame migration: tell the page the message handler is in place. Loading transformers.js in this worker takes
-// ~10 s on a cold start in the acde runtime, and a message posted before the handler exists is lost there, so the
-// service waits for this before it sends "init". See MIGRATION.md.
+// Dopame migration: tell the page the message handler is in place. The bundler evaluates this worker's modules
+// after its bootstrap script has returned, and evaluating transformers.js takes ~10 s on a cold start in the acde
+// runtime (in Chrome the worker reports model progress within ~2 s), so an "init" posted right after creating it reached it
+// before this handler existed and was never handled. The service waits for this before it sends "init".
+// See MIGRATION.md.
 self.postMessage({ type: "ready" } satisfies WorkerResponse);
 
 async function handleInit({ modelId }: { modelId: string }) {
