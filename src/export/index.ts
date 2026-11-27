@@ -1,3 +1,4 @@
+import { downloadBlob } from "@/utils/browser";
 import type { FrameRate } from "opencut-wasm";
 import { EXPORT_MIME_TYPES } from "./mime-types";
 
@@ -58,13 +59,6 @@ export function downloadBuffer({
 	filename: string;
 	mimeType: string;
 }): void {
-	const blob = new Blob([buffer], { type: mimeType });
-	const url = URL.createObjectURL(blob);
-	const downloadLink = document.createElement("a");
-	downloadLink.href = url;
-	downloadLink.download = filename;
-	document.body.appendChild(downloadLink);
-	downloadLink.click();
-	document.body.removeChild(downloadLink);
-	URL.revokeObjectURL(url);
+	// Dopame migration: downloadBlob saves through the save picker in the acde runtime (<a download> saves nothing).
+	downloadBlob({ blob: new Blob([buffer], { type: mimeType }), filename });
 }
